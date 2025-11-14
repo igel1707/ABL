@@ -17,6 +17,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
+  app.enableCors();
   await app.listen(3000, '127.0.0.1');
   console.log(`>>> Swagger ready at http://localhost:3000/docs`);
 }

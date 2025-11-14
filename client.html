@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CoWorkEase – Client Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f7;
+      margin: 0;
+      padding: 24px;
+      color: #222;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 26px;
+    }
+    .subtitle {
+      margin-bottom: 20px;
+      color: #555;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-bottom: 12px;
+    }
+    .card h2 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .card h3 {
+      font-size: 16px;
+      margin-top: 0;
+      margin-bottom: 6px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin: 6px 0 2px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 10px;
+      background: #2563eb;
+      color: white;
+      transition: background 0.15s, transform 0.05s;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button.small {
+      padding: 4px 10px;
+      font-size: 12px;
+      margin: 2px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button.secondary:hover {
+      background: #d1d5db;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status-bar {
+      font-size: 13px;
+      color: #374151;
+      margin-top: 6px;
+    }
+    .status-bar strong {
+      color: #111827;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    th {
+      background: #f9fafb;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.AVAILABLE { background: #dcfce7; color: #166534; }
+    .badge.HELD      { background: #fef3c7; color: #92400e; }
+    .badge.RESERVED  { background: #fee2e2; color: #b91c1c; }
+    .badge.DISABLED  { background: #e5e7eb; color: #374151; }
+
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      max-height: 260px;
+      overflow: auto;
+    }
+    .log-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .muted {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CoWorkEase – Client Demo</h1>
+  <div class="subtitle">
+    Testing API Seat Service pada client dengan Client Web yang diakses melalui browser.
+  </div>
+
+  <div class="layout">
+    <!-- KIRI: FORM & ACTIONS -->
+    <div>
+
+      <div class="card">
+        <h2>1. Create Space</h2>
+        <label>Space Name</label>
+        <input id="spaceName" type="text" value="Main Hall L1">
+
+        <label>Location</label>
+        <input id="spaceLocation" type="text" value="Campus A – Tower 1">
+
+        <label>Total Seats</label>
+        <input id="spaceTotalSeats" type="number" value="10" min="1">
+
+        <button onclick="createSpace()">Create Space</button>
+        <div class="status-bar" id="spaceStatus">
+          Belum ada space yang dibuat.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. Generate Seats</h2>
+        <p class="muted">Menggunakan endpoint <code>POST /spaces/{id}/seed</code></p>
+        <button onclick="seedSeats()">Seed Seats</button>
+        <div class="status-bar" id="seedStatus">
+          Menunggu space dibuat.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. Seats Actions</h2>
+        <p class="muted">
+          Pilih salah satu kursi dari tabel di kanan, lalu klik aksi di bawah.
+        </p>
+        <div class="status-bar" id="selectedSeatInfo">
+          Tidak ada kursi yang dipilih.
+        </div>
+
+        <button class="secondary small" onclick="setStatusSelected('AVAILABLE')">Set AVAILABLE</button>
+        <button class="small" onclick="setStatusSelected('HELD')">Set HELD (lock)</button>
+        <button class="small" style="background:#16a34a" onclick="setStatusSelected('RESERVED')">Set RESERVED</button>
+        <button class="secondary small" onclick="setStatusSelected('DISABLED')">Set DISABLED</button>
+
+        <div class="status-bar" id="seatActionStatus" style="margin-top:8px;"></div>
+      </div>
+
+    </div>
+
+    <!-- KANAN: TABLE & LOG -->
+    <div>
+      <div class="card">
+        <h2>Seats in Current Space</h2>
+        <p class="muted">
+          Data diambil dari <code>GET /spaces/{spaceId}/seats</code>.
+          Klik baris untuk memilih kursi.
+        </p>
+        <table id="seatsTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Label</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="3" class="muted">Belum ada data. Buat space dan seed seats terlebih dahulu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Last API Response</h3>
+        <div class="log-title" id="logTitle">–</div>
+        <pre id="logOutput">{}</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // base URL API (karena client.html dibuka dari port yang sama, boleh pakai origin ini)
+    const BASE = "http://localhost:3000";
+    let spaceId = null;
+    let selectedSeatId = null;
+
+    function setLog(title, data) {
+      document.getElementById('logTitle').textContent = title;
+      document.getElementById('logOutput').textContent =
+        JSON.stringify(data, null, 2);
+    }
+
+    function renderSeats(seats) {
+      const tbody = document.querySelector('#seatsTable tbody');
+      tbody.innerHTML = '';
+
+      if (!seats || seats.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.textContent = 'Belum ada kursi. Jalankan Seed Seats.';
+        td.className = 'muted';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      seats.forEach(seat => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+
+        tr.onclick = () => {
+          selectedSeatId = seat.id;
+          document.getElementById('selectedSeatInfo').innerHTML =
+            `Seat terpilih: <strong>${seat.label}</strong> (ID: ${seat.id}, status: <span class="badge ${seat.status}">${seat.status}</span>)`;
+        };
+
+        const tdId = document.createElement('td');
+        tdId.textContent = seat.id;
+
+        const tdLabel = document.createElement('td');
+        tdLabel.textContent = seat.label;
+
+        const tdStatus = document.createElement('td');
+        const span = document.createElement('span');
+        span.className = 'badge ' + seat.status;
+        span.textContent = seat.status;
+        tdStatus.appendChild(span);
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdStatus);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function createSpace() {
+      const name = document.getElementById('spaceName').value.trim();
+      const location = document.getElementById('spaceLocation').value.trim();
+      const totalSeats = parseInt(document.getElementById('spaceTotalSeats').value, 10);
+
+      if (!name || !location || !totalSeats) {
+        alert('Nama, lokasi, dan total seats wajib diisi.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE}/spaces`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, location, totalSeats })
+        });
+        const data = await res.json();
+        spaceId = data.id;
+
+        document.getElementById('spaceStatus').innerHTML =
+          `Space aktif: <strong>${data.name}</strong> (ID: ${data.id}, total seats: ${data.totalSeats})`;
+        document.getElementById('seedStatus').textContent =
+          'Space siap di-seed. Klik "Seed Seats".';
+        setLog('Create Space', data);
+        selectedSeatId = null;
+        renderSeats([]);
+      } catch (err) {
+        alert('Gagal create space. Lihat console.');
+        console.error(err);
+      }
+    }
+
+    async function seedSeats() {
+      if (!spaceId) {
+        alert('Buat space dulu.');
+        return;
+      }
+      try {
+        const res = await fetch(`${BASE}/spaces/${spaceId}/seed`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        document.getElementById('seedStatus').textContent =
+          `Berhasil generate ${data.seats?.length || 0} seats untuk space ID ${spaceId}.`;
+        setLog('Seed Seats', data);
+
+        await loadSeats(); // refresh tabel
+      } catch (err) {
+        alert('Gagal seed seats. Lihat console.');
+        console.error(err);
+      }
+    }
+
+    async function loadSeats() {
+      if (!spaceId) return;
+      try {
+        const res = await fetch(`${BASE}/spaces/${spaceId}/seats`);
+        const data = await res.json();
+        renderSeats(data);
+        setLog('Get Seats', data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function setStatusSelected(status) {
+      if (!spaceId) {
+        alert('Space belum dibuat.');
+        return;
+      }
+      if (!selectedSeatId) {
+        alert('Pilih seat dulu dari tabel.');
+        return;
+      }
+
+      try {
+        let res;
+        // gunakan endpoint khusus lock/unlock kalau statusnya HELD/AVAILABLE
+        if (status === 'HELD') {
+          res = await fetch(`${BASE}/spaces/${spaceId}/seats/${selectedSeatId}/lock`, {
+            method: 'POST'
+          });
+        } else if (status === 'AVAILABLE') {
+          res = await fetch(`${BASE}/spaces/${spaceId}/seats/${selectedSeatId}/unlock`, {
+            method: 'POST'
+          });
+        } else {
+          // RESERVED atau DISABLED pakai PATCH /status
+          res = await fetch(`${BASE}/spaces/${spaceId}/seats/${selectedSeatId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+        }
+
+        const data = await res.json();
+        document.getElementById('seatActionStatus').innerHTML =
+          `Status seat <strong>${data.label}</strong> sekarang: <span class="badge ${data.status}">${data.status}</span>`;
+        setLog(`Set Seat Status → ${status}`, data);
+
+        await loadSeats(); // refresh tabel
+      } catch (err) {
+        alert('Gagal update status seat. Lihat console.');
+        console.error(err);
+      }
+    }
+
+    // opsional: kalau spaceId sudah pernah diset manual di console, bisa auto load seats
+    // loadSeats();
+  </script>
+
+</body>
+</html>
